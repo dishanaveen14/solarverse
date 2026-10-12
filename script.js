@@ -2557,17 +2557,21 @@ function isARLaunchUrl() {
   );
 }
 
+const VERCEL_PRODUCTION_URL = 'https://solarverse-flame.vercel.app';
+
 function buildPhoneARUrl() {
   try {
     const u = new URL(window.location.href);
+    // When running on localhost/127.0.0.1, point the Phone QR code to the live HTTPS Vercel URL
+    // so the phone can open it on any network (Wi-Fi or Mobile Data) with full HTTPS live camera access!
     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-      u.hostname = detectedLanIP;
+      return `${VERCEL_PRODUCTION_URL}/?ar=1#ar`;
     }
     u.searchParams.set('ar', '1');
     u.hash = 'ar';
     return u.toString();
   } catch (e) {
-    return `http://${detectedLanIP}:5500/index.html?ar=1#ar`;
+    return `${VERCEL_PRODUCTION_URL}/?ar=1#ar`;
   }
 }
 
