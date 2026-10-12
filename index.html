@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolarVerse – Explore the Solar System in AR</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- MediaPipe Hands (for hand gesture tracking) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+  <!-- QR Code Generator Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- ========== AUTH GATE — shown first, blocks entire app ========== -->
+  <div class="auth-gate" id="auth-gate">
+    <canvas id="auth-star-canvas"></canvas>
+    <div class="auth-gate-card">
+      <div class="auth-gate-logo">
+        <i class="fas fa-satellite"></i>
+        <h1>Solar<span class="accent">Verse</span></h1>
+        <p class="auth-gate-tagline">"Explore Beyond Your Screen."</p>
+      </div>
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="register" id="gate-tab-register">Register</button>
+        <button class="auth-tab" data-tab="login" id="gate-tab-login">Login</button>
+      </div>
+      <!-- Register form (shown first) -->
+      <form class="auth-form" id="gate-register-form">
+        <div class="form-group">
+          <label for="gate-reg-name">Full Name / Username</label>
+          <input type="text" id="gate-reg-name" placeholder="Enter your name" minlength="2" required />
+        </div>
+        <div class="form-group">
+          <label for="gate-reg-email">Email</label>
+          <input type="email" id="gate-reg-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="gate-reg-password">Password</label>
+          <input type="password" id="gate-reg-password" placeholder="Create a password" minlength="4" required />
+        </div>
+        <div class="form-group">
+          <label for="gate-reg-confirm">Confirm Password</label>
+          <input type="password" id="gate-reg-confirm" placeholder="Confirm your password" minlength="4" required />
+        </div>
+        <p class="auth-msg" id="gate-reg-msg"></p>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+          <i class="fas fa-user-plus"></i> Register
+        </button>
+        <p class="auth-switch">Already registered? <a href="#" id="gate-switch-to-login">Go to Login</a></p>
+      </form>
+      <!-- Login form (opens after registering) -->
+      <form class="auth-form" id="gate-login-form" style="display:none;">
+        <div class="form-group">
+          <label for="gate-login-email">Email</label>
+          <input type="email" id="gate-login-email" placeholder="Enter your registered email" required />
+        </div>
+        <div class="form-group">
+          <label for="gate-login-password">Password</label>
+          <input type="password" id="gate-login-password" placeholder="Enter your registered password" required />
+        </div>
+        <p class="auth-msg" id="gate-login-msg"></p>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+        <p class="auth-switch">New user? <a href="#" id="gate-switch-to-register">Register a new account</a></p>
+      </form>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:8px;text-align:center;">
+        <button type="button" class="btn btn-secondary" id="gate-direct-ar-btn" style="width:100%;justify-content:center;font-size:0.85rem;padding:10px;">
+          <i class="fas fa-camera"></i> Launch Phone AR Camera Directly
+        </button>
+        <button type="button" class="btn btn-outline" id="gate-qr-btn" style="width:100%;justify-content:center;font-size:0.85rem;padding:10px;">
+          <i class="fas fa-qrcode"></i> Scan QR Code to Open in Phone AR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== QR CODE MODAL (For Scanning on Phone) ========== -->
+  <div class="modal-overlay" id="qr-modal" style="z-index:10001;">
+    <div class="modal-content qr-modal-content">
+      <button class="modal-close" id="qr-modal-close"><i class="fas fa-times"></i></button>
+      <h2 class="modal-planet-name" style="font-size:1.35rem;margin-bottom:6px;">
+        <i class="fas fa-mobile-alt" style="color:var(--accent-cyan);"></i> Scan to Open on Phone (AR Camera)
+      </h2>
+      <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px;">
+        Scan this QR code with your phone camera to launch <strong>SolarVerse AR</strong> directly (skips login &amp; opens AR Solar System)!
+      </p>
+      <div class="qr-box-wrap">
+        <div id="qr-code-container" class="qr-code-box"></div>
+      </div>
+      <div class="form-group" style="margin-top:14px;text-align:left;">
+        <label for="qr-url-input" style="font-size:0.75rem;">Phone AR URL (Wi-Fi Network IP):</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="qr-url-input" style="font-size:0.82rem;padding:8px 12px;" />
+          <button type="button" class="btn btn-secondary" id="btn-copy-qr-url" style="padding:8px 14px;font-size:0.8rem;white-space:nowrap;">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+        </div>
+      </div>
+      <div class="qr-instructions">
+        <p><i class="fas fa-wifi" style="color:var(--accent-cyan);"></i> Make sure your phone &amp; computer are on the <strong>same Wi-Fi / Hotspot</strong>.</p>
+        <p><i class="fas fa-camera" style="color:var(--accent-glow);"></i> Scanning opens the <strong>3D Solar System + Camera AR</strong> directly without stopping on the login page!</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btn-launch-ar-from-qr" style="width:100%;justify-content:center;margin-top:12px;">
+        <i class="fas fa-camera"></i> Launch Live Camera AR Now
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== MAIN APP (hidden until login, or shown immediately on QR scan) ========== -->
+  <div id="main-app" style="display:none;">
+  <script>
+    // Immediately bypass login page at 0ms when opened from QR code (?ar=1 or #ar)
+    if (window.location.search.indexOf('ar=1') !== -1 || window.location.hash.indexOf('ar') !== -1) {
+      var gateEl = document.getElementById('auth-gate');
+      var mainEl = document.getElementById('main-app');
+      if (gateEl) gateEl.style.display = 'none';
+      if (mainEl) mainEl.style.display = 'block';
+    }
+  </script>
+
+  <!-- ========== STAR BACKGROUND CANVAS ========== -->
+  <canvas id="star-canvas"></canvas>
+
+  <!-- ========== NAVIGATION ========== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-brand">
+      <i class="fas fa-satellite"></i>
+      <span class="logo-text">Solar<span class="accent">Verse</span></span>
+    </div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
+      <i class="fas fa-bars"></i>
+    </button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#hero">Home</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#explore">Explore</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+      <li><a href="#" id="nav-open-qr" class="nav-qr-link"><i class="fas fa-qrcode"></i> Phone QR</a></li>
+      <li><a href="#" id="nav-launch-ar" class="nav-btn">Launch AR / 3D</a></li>
+      <li>
+        <!-- Auth button: shows Login or Profile depending on state -->
+        <button class="btn btn-outline nav-auth-btn" id="nav-auth-btn">
+          <i class="fas fa-user"></i> <span id="nav-auth-label">Login</span>
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ========== HERO SECTION ========== -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <span class="logo-large">Solar<span class="accent">Verse</span></span>
+      </h1>
+      <p class="hero-subtitle">Explore the Solar System in Augmented Reality</p>
+      <p class="hero-description">
+        Bring the Solar System into your world. Place, explore, and learn about the planets in AR.
+        Use <strong>hand gestures</strong> to navigate the cosmos!
+      </p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary" id="btn-launch-ar">
+          <i class="fas fa-camera"></i> Launch AR Camera Experience
+        </button>
+        <button class="btn btn-secondary" id="btn-hero-qr">
+          <i class="fas fa-qrcode"></i> Scan QR for Phone
+        </button>
+        <a href="#explore" class="btn btn-outline">
+          <i class="fas fa-globe"></i> Explore Planets
+        </a>
+        <a href="#how-it-works" class="btn btn-outline">
+          <i class="fas fa-question-circle"></i> How It Works
+        </a>
+      </div>
+      <p class="hero-tagline">"Explore Beyond Your Screen."</p>
+    </div>
+    <div class="floating-planet fp-1"></div>
+    <div class="floating-planet fp-2"></div>
+    <div class="floating-planet fp-3"></div>
+  </section>
+
+  <!-- ========== DASHBOARD / STATS ========== -->
+  <section class="dashboard" id="dashboard">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <i class="fas fa-sun stat-icon"></i>
+          <span class="stat-number">1</span>
+          <span class="stat-label">Star</span>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-globe-americas stat-icon"></i>
+          <span class="stat-number">8</span>
+          <span class="stat-label">Planets</span>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-cube stat-icon"></i>
+          <span class="stat-number">8+</span>
+          <span class="stat-label">Interactive Objects</span>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-hand-sparkles stat-icon"></i>
+          <span class="stat-number">✋</span>
+          <span class="stat-label">Hand Gestures</span>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-brain stat-icon"></i>
+          <span class="stat-number">90</span>
+          <span class="stat-label">Quiz Questions</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HOW IT WORKS ========== -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">Three simple steps to explore the Solar System</p>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-icon"><i class="fas fa-camera"></i></div>
+          <h3>Open Camera</h3>
+          <p>Allow the website to access your device camera for the AR experience and hand gesture control.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-icon"><i class="fas fa-hand-paper"></i></div>
+          <h3>Use Hand Gestures</h3>
+          <p>Open palm to rotate, pinch to zoom, point to select a planet, and make a fist to pause.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-icon"><i class="fas fa-hand-pointer"></i></div>
+          <h3>Tap &amp; Explore</h3>
+          <p>Tap any planet to see its information, or click "Explore" on a planet card for full details.</p>
+        </div>
+      </div>
+
+      <!-- Gesture reference -->
+      <div class="gesture-ref">
+        <h3 class="gesture-ref-title">Hand Gesture Reference</h3>
+        <div class="gesture-grid">
+          <div class="gesture-item">
+            <span class="gesture-emoji">🖐️</span>
+            <strong>Open Palm + Move</strong>
+            <p>Rotate the Solar System</p>
+          </div>
+          <div class="gesture-item">
+            <span class="gesture-emoji">🤏</span>
+            <strong>Pinch (Thumb + Index)</strong>
+            <p>Zoom In / Out</p>
+          </div>
+          <div class="gesture-item">
+            <span class="gesture-emoji">👆</span>
+            <strong>Point (Index Finger)</strong>
+            <p>Select a Planet</p>
+          </div>
+          <div class="gesture-item">
+            <span class="gesture-emoji">✊</span>
+            <strong>Fist</strong>
+            <p>Pause / Resume</p>
+          </div>
+          <div class="gesture-item">
+            <span class="gesture-emoji">✌️</span>
+            <strong>Peace Sign</strong>
+            <p>Reset View</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== EXPLORE PLANETS ========== -->
+  <section class="explore" id="explore">
+    <div class="container">
+      <h2 class="section-title">Explore the Planets</h2>
+      <p class="section-subtitle">Interactive 3D previews — click any planet to learn more</p>
+      <div class="planets-grid" id="planets-grid">
+        <!-- Planet cards with 3D canvas previews are generated by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PLANET DETAIL MODAL ========== -->
+  <div class="modal-overlay" id="planet-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close"><i class="fas fa-times"></i></button>
+      <div class="modal-planet-canvas-wrap" id="modal-planet-canvas-wrap"></div>
+      <h2 class="modal-planet-name" id="modal-planet-name"></h2>
+      <p class="modal-planet-type" id="modal-planet-type"></p>
+      <p class="modal-planet-desc" id="modal-planet-desc"></p>
+      <div class="modal-stats" id="modal-stats"></div>
+      <div class="modal-facts" id="modal-facts"></div>
+      <button class="btn btn-primary modal-explore-btn" id="modal-explore-3d">
+        <i class="fas fa-cube"></i> View in Full 3D Solar System
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== QUIZ SECTION ========== -->
+  <section class="quiz-section" id="quiz">
+    <div class="container">
+      <h2 class="section-title">Solar System Quiz</h2>
+      <p class="section-subtitle">90 questions across 3 difficulty levels — test your cosmic knowledge!</p>
+      <div class="quiz-container" id="quiz-container">
+        <!-- Difficulty selector -->
+        <div class="quiz-start" id="quiz-start">
+          <i class="fas fa-rocket quiz-start-icon"></i>
+          <h3>Choose Your Difficulty</h3>
+          <p>Each level has 30 questions. You'll answer 10 per round.</p>
+          <div class="difficulty-selector">
+            <button class="btn btn-difficulty easy active" data-difficulty="easy">
+              <i class="fas fa-star"></i> Easy
+            </button>
+            <button class="btn btn-difficulty medium" data-difficulty="medium">
+              <i class="fas fa-star-half-alt"></i> Medium
+            </button>
+            <button class="btn btn-difficulty hard" data-difficulty="hard">
+              <i class="fas fa-fire"></i> Hard
+            </button>
+          </div>
+          <div class="difficulty-desc" id="difficulty-desc">
+            <p>🌟 <strong>Easy</strong> — Basic solar system facts everyone should know.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-start-quiz">
+            <i class="fas fa-play"></i> Start Quiz
+          </button>
+        </div>
+
+        <div class="quiz-active" id="quiz-active" style="display:none;">
+          <div class="quiz-header-row">
+            <span class="quiz-difficulty-badge" id="quiz-difficulty-badge">EASY</span>
+            <span class="quiz-timer" id="quiz-timer">⏱ 0:00</span>
+          </div>
+          <div class="quiz-progress">
+            <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+          </div>
+          <p class="quiz-counter" id="quiz-counter">Question 1 / 10</p>
+          <h3 class="quiz-question" id="quiz-question"></h3>
+          <div class="quiz-options" id="quiz-options"></div>
+        </div>
+
+        <div class="quiz-result" id="quiz-result" style="display:none;">
+          <i class="fas fa-trophy quiz-result-icon"></i>
+          <h3 id="quiz-result-title"></h3>
+          <p class="quiz-score" id="quiz-score"></p>
+          <p class="quiz-time" id="quiz-time"></p>
+          <div class="quiz-result-actions">
+            <button class="btn btn-primary" id="btn-retry-quiz">
+              <i class="fas fa-redo"></i> Try Again
+            </button>
+            <button class="btn btn-secondary" id="btn-change-difficulty">
+              <i class="fas fa-layer-group"></i> Change Difficulty
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== AUTH MODAL ========== -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-content auth-modal-content">
+      <button class="modal-close" id="auth-modal-close"><i class="fas fa-times"></i></button>
+      <h2 class="modal-planet-name" style="font-size:1.4rem;">
+        <i class="fas fa-user-astronaut"></i> Welcome to SolarVerse
+      </h2>
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="register">Register</button>
+      </div>
+      <!-- Login form -->
+      <form class="auth-form" id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••" required />
+        </div>
+        <p class="auth-error" id="login-error"></p>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+      </form>
+      <!-- Register form -->
+      <form class="auth-form" id="register-form" style="display:none;">
+        <div class="form-group">
+          <label for="reg-username">Username</label>
+          <input type="text" id="reg-username" placeholder="SpaceExplorer" minlength="3" maxlength="30" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" placeholder="Create a password" minlength="4" required />
+        </div>
+        <p class="auth-error" id="register-error"></p>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+          <i class="fas fa-user-plus"></i> Create Account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== USER PROFILE DROPDOWN ========== -->
+  <div class="profile-dropdown" id="profile-dropdown" style="display:none;">
+    <div class="profile-header">
+      <i class="fas fa-user-astronaut profile-avatar"></i>
+      <div>
+        <strong id="profile-username">Username</strong>
+        <small id="profile-email">email@example.com</small>
+      </div>
+    </div>
+    <div class="profile-stats" id="profile-stats-mini">
+      <div><span class="profile-stat-num" id="ps-quizzes">0</span><span class="profile-stat-lbl">Quizzes</span></div>
+      <div><span class="profile-stat-num" id="ps-planets">0</span><span class="profile-stat-lbl">Planets</span></div>
+    </div>
+    <button class="btn btn-secondary profile-logout" id="btn-logout" style="width:100%;justify-content:center;margin-top:10px;">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+  </div>
+
+  <!-- ========== LEADERBOARD SECTION ========== -->
+  <section class="leaderboard-section" id="leaderboard">
+    <div class="container">
+      <h2 class="section-title">Leaderboard</h2>
+      <p class="section-subtitle">Top quiz scores from all explorers</p>
+      <div class="leaderboard-tabs">
+        <button class="btn btn-difficulty easy active" data-lb="easy">🌟 Easy</button>
+        <button class="btn btn-difficulty medium" data-lb="medium">⚡ Medium</button>
+        <button class="btn btn-difficulty hard" data-lb="hard">🔥 Hard</button>
+      </div>
+      <div class="leaderboard-table-wrap">
+        <table class="leaderboard-table" id="leaderboard-table">
+          <thead>
+            <tr><th>#</th><th>Player</th><th>Score</th><th>Time</th><th>Date</th></tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr><td colspan="5" class="lb-empty">No scores yet — be the first!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="logo-text">Solar<span class="accent">Verse</span></span>
+          <p>"Explore Beyond Your Screen."</p>
+        </div>
+        <div class="footer-links">
+          <a href="#hero">Home</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#explore">Explore</a>
+          <a href="#quiz">Quiz</a>
+        </div>
+      </div>
+      <p class="footer-copy">&copy; 2026 SolarVerse. Built for educational purposes.</p>
+    </div>
+  </footer>
+
+  <!-- ========== 3D / AR SOLAR SYSTEM OVERLAY ========== -->
+  <div class="solar-overlay" id="solar-overlay" style="display:none;">
+    <!-- Live Camera Background for AR Mode (sits behind Three.js canvas) -->
+    <video id="ar-camera-bg" class="ar-camera-bg" autoplay playsinline muted></video>
+    <img id="ar-camera-img-bg" class="ar-camera-bg" alt="" />
+    <input type="file" id="ar-native-cam-input" accept="video/*,image/*" capture="environment" style="display:none;" />
+    <!-- Three.js canvas is inserted here by JS -->
+    <div class="solar-hud">
+      <!-- Top bar -->
+      <div class="hud-top">
+        <button class="hud-btn" id="hud-back" title="Back to Home">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <span class="hud-title" id="hud-title">SolarVerse – AR Camera Mode</span>
+        <div class="hud-top-right">
+          <button class="hud-btn" id="hud-ar-cam" title="Toggle Live AR Camera Background">
+            <i class="fas fa-camera"></i>
+          </button>
+          <button class="hud-btn" id="hud-switch-cam" title="Switch Front / Back Camera" style="display:none;">
+            <i class="fas fa-camera-rotate"></i>
+          </button>
+          <button class="hud-btn" id="hud-qr" title="Scan QR for Phone AR">
+            <i class="fas fa-qrcode"></i>
+          </button>
+          <button class="hud-btn" id="hud-gesture" title="Enable Hand Gestures">
+            <i class="fas fa-hand-paper"></i>
+          </button>
+          <button class="hud-btn" id="hud-fullscreen" title="Toggle Fullscreen">
+            <i class="fas fa-expand"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1-Tap Mobile Camera Activation Banner (shown on phones if browser requires tap gesture) -->
+      <button type="button" id="ar-cam-prompt-btn" class="btn btn-primary" style="display:none;position:absolute;top:68px;left:50%;transform:translateX(-50%);z-index:30;padding:10px 20px;font-size:0.86rem;white-space:nowrap;box-shadow:0 0 25px rgba(0,229,255,0.6);">
+        <i class="fas fa-camera"></i> Tap to Open Phone Camera Background
+      </button>
+
+      <!-- Gesture status indicator -->
+      <div class="gesture-status" id="gesture-status" style="display:none;">
+        <div class="gesture-cam-wrap">
+          <video id="gesture-video" autoplay playsinline></video>
+          <canvas id="gesture-canvas"></canvas>
+        </div>
+        <div class="gesture-indicator" id="gesture-indicator">
+          <span class="gesture-icon" id="gesture-icon">🖐️</span>
+          <span class="gesture-label" id="gesture-label">No hand detected</span>
+        </div>
+      </div>
+
+      <!-- Bottom controls -->
+      <div class="hud-bottom">
+        <div class="hud-controls">
+          <button class="hud-btn" id="hud-pause" title="Pause/Resume">
+            <i class="fas fa-pause"></i>
+          </button>
+          <div class="hud-speed">
+            <button class="hud-btn hud-speed-btn active" data-speed="0.5">0.5x</button>
+            <button class="hud-btn hud-speed-btn" data-speed="1">1x</button>
+            <button class="hud-btn hud-speed-btn" data-speed="2">2x</button>
+          </div>
+          <button class="hud-btn" id="hud-orbits" title="Toggle Orbits">
+            <i class="fas fa-circle-notch"></i>
+          </button>
+          <button class="hud-btn" id="hud-labels" title="Toggle Labels">
+            <i class="fas fa-tag"></i>
+          </button>
+          <button class="hud-btn" id="hud-sound" title="Toggle Music">
+            <i class="fas fa-volume-up"></i>
+          </button>
+          <button class="hud-btn" id="hud-reset" title="Reset View">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Planet selector (side panel) -->
+      <div class="hud-planet-selector" id="hud-planet-selector"></div>
+
+      <!-- Planet info card -->
+      <div class="hud-info-card" id="hud-info-card" style="display:none;">
+        <button class="hud-info-close" id="hud-info-close"><i class="fas fa-times"></i></button>
+        <h3 id="hud-info-name"></h3>
+        <p id="hud-info-type" class="hud-info-type"></p>
+        <div id="hud-info-details" class="hud-info-details"></div>
+      </div>
+    </div>
+
+    <!-- AR-specific UI -->
+    <div class="ar-ui" id="ar-ui" style="display:none;">
+      <p class="ar-instruction" id="ar-instruction">Point your camera at a flat surface</p>
+      <div class="ar-crosshair" id="ar-crosshair">
+        <div class="crosshair-ring"></div>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- End of #main-app -->
+
+  <!-- ========== SCRIPTS ========== -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
