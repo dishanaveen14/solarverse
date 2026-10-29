@@ -1,89 +1,76 @@
-# SolarVerse – Explore the Solar System in AR
+# SolarVerse – Interactive 3D & WebAR Solar System Experience
 
-> "Explore Beyond Your Screen."
+> "Explore our planetary neighborhood in real-time 3D, or place the planets directly into your physical surroundings using Web Augmented Reality."
 
-An interactive, educational web application that lets you explore the Solar System in 3D and Augmented Reality. Built with HTML5, CSS3, JavaScript, and Three.js.
-
-## 🚀 How to Run
-
-### Option 1: VS Code Live Server (Recommended)
-
-1. Open the `solarverse` folder in VS Code.
-2. Install the **Live Server** extension (by Ritwick Dey) from the Extensions Marketplace.
-3. Right-click `index.html` → **Open with Live Server**.
-4. The app opens in your browser at `http://127.0.0.1:5500`.
-
-### Option 2: Python HTTP Server
-
-```bash
-cd solarverse
-python -m http.server 8000
-```
-
-Open `http://localhost:8000` in your browser.
-
-### Option 3: Node.js HTTP Server
-
-```bash
-npx http-server . -p 8000
-```
-
-Open `http://localhost:8000` in your browser.
-
-> **Important**: You must serve via HTTP (not `file://`) because ES modules and Three.js imports require a server.
-
-## 📱 Testing AR on Mobile
-
-1. Serve the app over HTTPS (required for camera access). Use one of:
-   - **ngrok**: `ngrok http 5500` → use the HTTPS URL on your phone.
-   - **VS Code Port Forwarding**: Forward port 5500 and use the HTTPS tunnel URL.
-   - **GitHub Pages**: Push to a repo and enable Pages.
-2. Open the HTTPS URL on your Android/iOS device in **Chrome** (Android) or **Safari** (iOS).
-3. If WebXR AR is not supported on the device, the app automatically falls back to **3D Solar System Mode** where you can still rotate, zoom, and explore the planets.
-
-## 🎯 Features
-
-- 🌍 Interactive 3D Solar System with all 8 planets + the Sun
-- 🔄 Planet rotation and orbit animation
-- ⏯ Pause/Resume and Speed controls (0.5x, 1x, 2x)
-- 🏷 Toggle orbit paths and planet labels
-- 🔊 Ambient space sound toggle
-- 📋 Planet info cards with facts, stats, and details
-- 🃏 "Explore Planets" section with cards for each planet
-- 🧠 10-question Solar System quiz with scoring
-- 🌌 Animated star background
-- 📐 Responsive design (mobile, tablet, desktop)
-- 🎨 Futuristic glassmorphism UI
-
-## 📁 Project Structure
-
-```
-solarverse/
-├── index.html      # Main HTML file
-├── style.css       # All styles
-├── script.js       # JavaScript application
-├── assets/         # Assets directory (for textures, etc.)
-└── README.md       # This file
-```
-
-## 🛠 Technologies
-
-- HTML5 / CSS3 / JavaScript (ES Modules)
-- Three.js (CDN) – 3D rendering
-- WebXR API – Augmented Reality
-- Web Audio API – Ambient sound
-- Font Awesome – Icons
-- Google Fonts (Orbitron + Inter) – Typography
-
-## 👨‍🎓 College Mini-Project / Hackathon
-
-This project is designed to be suitable for college-level demonstrations. It showcases:
-- Modern web development practices
-- 3D graphics programming with Three.js
-- Responsive UI/UX design
-- Interactive educational content
-- AR/XR technology awareness
+SolarVerse is a responsive web application and space observatory built with **Next.js (App Router)** and **Three.js (WebGL)**. It features real-time procedural planetary texturing, smooth 360° touch and cursor orbit controls, live rear-camera WebAR tracking, and an astronomy quiz module.
 
 ---
 
-Built with ❤️ for SolarVerse
+## 🌟 Highlights & Key Features
+
+- **Web Augmented Reality (WebAR)**:
+  - Superimposes 3D planets into your physical room using your phone's camera stream via WebRTC (`getUserMedia`).
+  - True transparent WebGL composition so planets float directly in your physical environment.
+  - Zero app install required; works natively in mobile browsers (iOS Safari, Android Chrome) over HTTPS.
+- **High-Contrast Phone QR Code**:
+  - Prominent QR code on the landing page for instant mobile scanning.
+  - Includes clear 3-step instructions (Scan → Allow Camera → View in Room).
+  - If viewing directly on a smartphone, includes an **"Open AR on this phone"** alternative button.
+- **Interactive 3D Planet Inspection**:
+  - Select any planet to inspect it in a dedicated 3D view with 360° yaw, pitch, and roll rotation using cursor drag or touch swipe.
+  - Multi-light cosmic rig ensures planets are vibrantly lit and never obscured by pitch-black shadows.
+  - Clear, prominent **"← Back to Solar System"** navigation button.
+- **Educational Dataset & Astronomy Quiz**:
+  - Accurate physical characteristics for the Sun and all 8 planets.
+  - Interactive 10-question astronomy quiz across Easy, Medium, and Hard difficulty with score tracking.
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+- Node.js 18+ installed
+
+### Development Server
+```bash
+# Install dependencies
+npm install
+
+# Start Next.js development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your web browser.
+
+### Production Build
+```bash
+npm run build
+npm start
+```
+
+---
+
+## ☁️ Deployment on Vercel
+
+SolarVerse is optimized for seamless deployment on **Vercel**:
+1. Push this repository to GitHub (`main` or `master` branch).
+2. Import the repository in [Vercel](https://vercel.com).
+3. Framework Preset: **Next.js** (detected automatically).
+4. Deploy! Vercel handles HTTPS certificate issuance, camera permissions headers, and edge delivery.
+
+**Live Deployment URL:** [https://solarverse-flame.vercel.app](https://solarverse-flame.vercel.app)
+
+---
+
+## 🛠 Tech Stack
+
+- **Framework**: Next.js 14 (App Router, React 18)
+- **3D Graphics**: Three.js (WebGL, OrbitControls)
+- **AR / Hardware**: WebRTC Camera Stream (`navigator.mediaDevices.getUserMedia`)
+- **Icons**: Lucide React
+- **QR Generation**: QRCode.js (High-contrast SVG)
+- **Deployment**: Vercel (HTTPS Cloud)
+
+---
+
+Built with ❤️ for SolarVerse — College Mini-Project & Educational Showcase.
